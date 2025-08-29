@@ -88,7 +88,9 @@ java -jar ${builder_helper_jar} OPTIMIZE_BUILDER_CLASS -i ${script_dir}/dist/res
 if [ ! -d ${root_dir}/ratelmanager/src/main/assets ] ;then
   mkdir ${root_dir}/ratelmanager/src/main/assets
 fi
-rm ${root_dir}/ratelmanager/src/main/assets/container-builder-repkg-dex.jar
+if [ -f ${root_dir}/ratelmanager/src/main/assets/container-builder-repkg-dex.jar ] ;then
+  rm ${root_dir}/ratelmanager/src/main/assets/container-builder-repkg-dex.jar
+fi
 cp ${script_dir}/dist/res/${builder_dex_file_name} ${root_dir}/ratelmanager/src/main/assets/container-builder-repkg-dex.jar
 
 
@@ -97,11 +99,11 @@ cd ${root_dir}
 
 
 
-#if [ ! -d /opt/ratel/ ] ;then
-#    mkdir /opt/ratel/
-#fi
-## 这里，放到系统指定目录，然后配置好环境变量，就可以直接命令行调用ratel了
-#cp -r ${script_dir}/dist/* /opt/ratel/
+if [ -d /opt/ratel/ ] ;then
+  # virjar 电脑的特殊逻辑，我在电脑上配置了环境变量，并将ratel的脚本文件夹配置到 /opt/ratel下
+  # 所以可以在任何地方直接调用  ratel.sh
+  cp -r ${script_dir}/dist/* /opt/ratel/
+fi
 
 cd ${script_dir}/dist/
 zip -r dist.zip ./*

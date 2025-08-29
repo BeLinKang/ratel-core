@@ -27,6 +27,7 @@
 #include "MacAddressFake.h"
 #include <MapsHideHandler.h>
 #include <xhook.h>
+#include <bytehook.h>
 
 #if defined(__LP64__)
 #define LINKER_PATH "/system/bin/linker64"
@@ -285,6 +286,7 @@ HOOK_DEF(int, __statfs64, const char *pathname, size_t size, struct statfs *stat
 HOOK_DEF(int, __open, const char *pathname, int flags, int mode) {
     char temp[PATH_MAX];
     const char *relocated_path = relocate_path(pathname, temp, sizeof(temp));
+    ALOGE("__open found %s -----> %s", pathname, relocated_path);
     if (relocated_path && !((flags & O_WRONLY || flags & O_RDWR) && isReadOnly(relocated_path))) {
         int fake_fd = redirect_proc_maps(relocated_path, flags, mode);
         if (fake_fd != 0) {
@@ -905,32 +907,32 @@ __END_DECLS
 // end IO DEF
 
 
-void onSoLoaded(const char *name, void *handle) {
-}
-
-bool relocate_linker(const char * linker_path) {
+bool relocate_linker(const char *linker_path) {
     intptr_t linker_addr, dlopen_off, symbol;
     if ((linker_addr = get_addr(linker_path)) == 0) {
-        ALOGE("Cannot found linker addr: %s",linker_path);
+        ALOGE("Cannot found linker addr: %s", linker_path);
         return false;
     }
     if (resolve_symbol(linker_path, "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv",
                        &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfoPKv addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfoPKv addr: %s",
+              linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIVV,
                           (void **) &orig_do_dlopen_CIVV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl__Z9do_dlopenPKciPK17android_dlextinfoPv",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfoPv addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfoPv addr: %s",
+              linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIVV,
                           (void **) &orig_do_dlopen_CIVV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl__ZL10dlopen_extPKciPK17android_dlextinfoPv",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__ZL10dlopen_extPKciPK17android_dlextinfoPv addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__ZL10dlopen_extPKciPK17android_dlextinfoPv addr: %s",
+              linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIVV,
                           (void **) &orig_do_dlopen_CIVV);
@@ -938,7 +940,8 @@ bool relocate_linker(const char * linker_path) {
     } else if (
             resolve_symbol(linker_path, "__dl__Z20__android_dlopen_extPKciPK17android_dlextinfoPKv",
                            &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__Z20__android_dlopen_extPKciPK17android_dlextinfoPKv addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__Z20__android_dlopen_extPKciPK17android_dlextinfoPKv addr: %s",
+              linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIVV,
                           (void **) &orig_do_dlopen_CIVV);
@@ -946,41 +949,42 @@ bool relocate_linker(const char * linker_path) {
     } else if (
             resolve_symbol(linker_path, "__dl___loader_android_dlopen_ext",
                            &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl___loader_android_dlopen_ext addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl___loader_android_dlopen_ext addr: %s", linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIVV,
                           (void **) &orig_do_dlopen_CIVV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl__Z9do_dlopenPKciPK17android_dlextinfo",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfo addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__Z9do_dlopenPKciPK17android_dlextinfo addr: %s",
+              linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIV,
                           (void **) &orig_do_dlopen_CIV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl__Z8__dlopenPKciPKv",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl__Z8__dlopenPKciPKv addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl__Z8__dlopenPKciPKv addr: %s", linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIV,
                           (void **) &orig_do_dlopen_CIV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl___loader_dlopen",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl___loader_dlopen addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl___loader_dlopen addr: %s", linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_do_dlopen_CIV,
                           (void **) &orig_do_dlopen_CIV);
         return true;
     } else if (resolve_symbol(linker_path, "__dl_dlopen",
                               &dlopen_off) == 0) {
-        ALOGE("resolve linker symobl __dl_dlopen addr: %s",linker_path);
+        ALOGE("resolve linker symobl __dl_dlopen addr: %s", linker_path);
         symbol = linker_addr + dlopen_off;
         MSHookFunctionOld((void *) symbol, (void *) new_dlopen_CI,
                           (void **) &orig_dlopen_CI);
         return true;
     }
-    ALOGE("do not resolve linker symobl dlopen: %s",linker_path);
+    ALOGE("do not resolve linker symobl dlopen: %s", linker_path);
     return false;
 }
 
@@ -1040,6 +1044,24 @@ bool on_found_linker_syscall_arm(const char *path, int num, void *func) {
 #endif
 
 
+void onSoLoaded(const char *name, void *handle) {
+    if (name != nullptr) {
+        ALOGE("dlopen found so name: %s", name);
+        if (strstr(name, "/data/app/") || strstr(name, "/data/user/")) {
+#if defined(__arm64__) || defined(__aarch64__)
+            findSyscalls(name, on_found_syscall_aarch64);
+#elif defined(__arm__)
+            findSyscalls(name, on_found_linker_syscall_arm);
+#else
+#error "Not Support Architecture."
+#endif
+            ALOGE("hook svc from so name: %s, over", name);
+        }
+    }
+
+
+}
+
 int (*old__system_property_get)(const char *__name, char *__value);
 
 //我们之前从native反射到java，有很大问题。华为有一个机型直接卡白屏。目前原因未知，我们将属性替换重心逻辑由java层迁移到native层
@@ -1074,6 +1096,45 @@ int new_SystemPropertiesGet(void *hidden_this, const char *__name, char *__value
     int result = old_SystemPropertiesGet(hidden_this, __name, __value);
     // ALOGI("get property name=%s,value=%s", __name, __value);
     // replace_property_if_need(__name, __value);
+    return result;
+}
+
+void bhook_callback(
+        bytehook_stub_t task_stub, //存根，全局唯一，用于unhook
+        int status_code, //hook执行状态码
+        const char *caller_path_name, //调用者的pathname或basename
+        const char *sym_name, //函数名
+        void *new_func, //新函数地址
+        void *prev_func, //原函数地址
+        void *arg) {
+    ALOGI("bhook hook %s result: %d", sym_name, status_code);
+}
+
+int new_bhook_system_property_get(const char *__name, char *__value) {
+    // 每个 proxy 函数中都必须执行 ByteHook 的 stack 清理逻辑
+    BYTEHOOK_STACK_SCOPE();
+    ALOGD("__system_property_get: %s", __name);
+    int result = BYTEHOOK_CALL_PREV(new_bhook_system_property_get, __name, __value);
+    if (result < 0) {
+        //failed
+        return result;
+    }
+
+    PropertiesMockItem *propertiesMockItem = query_mock_properties(__name);
+    if (propertiesMockItem == nullptr) {
+        return result;
+    }
+
+    if (propertiesMockItem->properties_value == nullptr) {
+        result = -1;
+        __value[0] = '\0';
+        return result;
+    }
+
+    result = propertiesMockItem->value_length;
+    ALOGD("__system_property_get: %s , origin value:%s,replaced value:%s", __name, __value,
+          propertiesMockItem->properties_value);
+    strcpy(__value, propertiesMockItem->properties_value);
     return result;
 }
 
@@ -1158,7 +1219,9 @@ FILE *new_popen(const char *command, const char *type) {
 
 //property name=gsm.version.baseband,value=MPSS-SDM710-0727_1333_2b0e169
 void startIOHook(int api_level, bool needHookProperties) {
-    if(api_level >= ANDROID_Q){
+    ALOGE("hook start : startIOHook");
+
+    if (api_level >= ANDROID_Q) {
         if (BYTE_POINT == 8) {
             libc_path = "/apex/com.android.runtime/lib64/bionic/libc.so";
             linker_path = "/apex/com.android.runtime/bin/linker64";
@@ -1166,7 +1229,7 @@ void startIOHook(int api_level, bool needHookProperties) {
             libc_path = "/apex/com.android.runtime/lib/bionic/libc.so";
             linker_path = "/apex/com.android.runtime/bin/linker";
         }
-    }else{
+    } else {
         if (BYTE_POINT == 8) {
             libc_path = "/system/lib64/libc.so";
             linker_path = "/system/bin/linker64";
@@ -1216,6 +1279,9 @@ void startIOHook(int api_level, bool needHookProperties) {
         HOOK_SYMBOL(handle, fstatat64);
         findSyscalls(libc_path, on_found_syscall_aarch64);
         findSyscalls(linker_path, on_found_linker_syscall_arch64);
+
+        bool linker_result = relocate_linker(linker_path);
+        ALOGE("hook 64 linker_result : %d", linker_result);
 #else
         HOOK_SYMBOL(handle, faccessat);
         HOOK_SYMBOL(handle, __openat);
@@ -1256,7 +1322,9 @@ void startIOHook(int api_level, bool needHookProperties) {
             HOOK_SYMBOL(handle, symlink);
         }
 #ifdef __arm__
-        if (!relocate_linker(linker_path)) {
+        bool linker_result = relocate_linker(linker_path);
+        ALOGE("hook 32 linker_result : %d", linker_result);
+        if (!linker_result) {
             findSyscalls(linker_path, on_found_linker_syscall_arm);
         }
 #endif

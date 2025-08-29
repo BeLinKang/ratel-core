@@ -9,7 +9,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.tools.zip.ZipFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +62,9 @@ public class BuilderContextParser {
             return;
         }
         if (builderContext.infectApk == null) {
+            if (builderContext.xpModuleApk != null) {
+                throw new IllegalStateException("can not infect xposed module!!");
+            }
             throw new IllegalStateException("no infect apk passed");
         }
     }
@@ -71,11 +73,11 @@ public class BuilderContextParser {
         for (String apkFilePath : leftParams) {
             File file = new File(apkFilePath);
             if (!file.exists()) {
-                continue;
+                throw new IllegalStateException("the apk file not exist: " + apkFilePath);
             }
             BuilderContext.ApkAsset apkAsset = parseApkFile(file);
             if (apkAsset == null) {
-                continue;
+                throw new IllegalStateException("apk parse failed " + apkFilePath);
             }
             if (apkAsset.isXpModule) {
                 if (builderContext.xpModuleApk != null) {
@@ -100,7 +102,7 @@ public class BuilderContextParser {
             apkAsset.file = file;
             apkAsset.apkMeta = apkFile.getApkMeta();
             apkAsset.isXpModule = apkFile.getFileData("assets/xposed_init") != null;
-            apkAsset.zipFile = new ZipFile(file);
+            apkAsset.zipFile = apkFile.getZipFile();
             apkAsset.manifestXml = apkFile.getManifestXml();
             return apkAsset;
         } catch (Exception e) {
